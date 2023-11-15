@@ -7,14 +7,15 @@ use get_error;
 pub mod ll {
     #![allow(non_camel_case_types)]
 
-    use libc::{c_void, c_int, uint8_t, int16_t};
-    use libc::types::os::arch::c95::c_schar;
+    use std::ffi::c_char;
+
+    use libc::{c_int, c_void, int16_t, uint8_t};
 
     pub type SDL_Joystick = c_void;
 
     extern "C" {
         pub fn SDL_NumJoysticks() -> c_int;
-        pub fn SDL_JoystickName(i: c_int) -> *const c_schar;
+        pub fn SDL_JoystickName(i: c_int) -> *const c_char;
         pub fn SDL_JoystickOpen(i: c_int) -> *mut SDL_Joystick;
         pub fn SDL_JoystickOpened(i: c_int) -> c_int;
         pub fn SDL_JoystickIndex(joystick: *mut SDL_Joystick) -> c_int;
@@ -26,8 +27,12 @@ pub mod ll {
         pub fn SDL_JoystickEventState(state: c_int) -> c_int;
         pub fn SDL_JoystickGetAxis(joystick: *mut SDL_Joystick, axis: c_int) -> int16_t;
         pub fn SDL_JoystickGetHat(joystick: *mut SDL_Joystick, hat: c_int) -> uint8_t;
-        pub fn SDL_JoystickGetBall(joystick: *mut SDL_Joystick, ball: c_int, dx: *mut c_int, dy: *mut c_int)
-                        -> c_int;
+        pub fn SDL_JoystickGetBall(
+            joystick: *mut SDL_Joystick,
+            ball: c_int,
+            dx: *mut c_int,
+            dy: *mut c_int,
+        ) -> c_int;
         pub fn SDL_JoystickGetButton(joystick: *mut SDL_Joystick, button: c_int) -> uint8_t;
         pub fn SDL_JoystickClose(joystick: *mut SDL_Joystick);
     }
@@ -44,7 +49,9 @@ pub fn get_joystick_name(index: isize) -> Result<String, String> {
         if cstr.is_null() {
             Err(get_error())
         } else {
-            Ok(str::from_utf8(CStr::from_ptr(cstr).to_bytes()).unwrap().to_string())
+            Ok(str::from_utf8(CStr::from_ptr(cstr).to_bytes())
+                .unwrap()
+                .to_string())
         }
     }
 }
@@ -54,12 +61,14 @@ pub fn is_joystick_open(index: isize) -> bool {
 }
 
 pub fn update_joysticks() {
-    unsafe { ll::SDL_JoystickUpdate(); }
+    unsafe {
+        ll::SDL_JoystickUpdate();
+    }
 }
 
 #[derive(PartialEq)]
 pub struct Joystick {
-    pub raw: *mut ll::SDL_Joystick
+    pub raw: *mut ll::SDL_Joystick,
 }
 
 fn wrap_joystick(raw: *mut ll::SDL_Joystick) -> Joystick {
@@ -71,8 +80,11 @@ impl Joystick {
         unsafe {
             let raw = ll::SDL_JoystickOpen(index as c_int);
 
-            if raw.is_null() { Err(get_error()) }
-            else { Ok(wrap_joystick(raw)) }
+            if raw.is_null() {
+                Err(get_error())
+            } else {
+                Ok(wrap_joystick(raw))
+            }
         }
     }
 
@@ -112,9 +124,9 @@ impl Joystick {
         let mut dx = 0;
         let mut dy = 0;
 
-        unsafe { ll::SDL_JoystickGetBall(self.raw, ball as c_int,
-                                         &mut dx,
-                                         &mut dy); }
+        unsafe {
+            ll::SDL_JoystickGetBall(self.raw, ball as c_int, &mut dx, &mut dy);
+        }
 
         (dx as isize, dy as isize)
     }
@@ -122,6 +134,8 @@ impl Joystick {
 
 impl Drop for Joystick {
     fn drop(&mut self) {
-        unsafe { ll::SDL_JoystickClose(self.raw); }
+        unsafe {
+            ll::SDL_JoystickClose(self.raw);
+        }
     }
 }

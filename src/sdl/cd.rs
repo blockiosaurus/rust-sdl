@@ -1,14 +1,15 @@
 use libc::c_int;
-use std::str;
 use std::ffi::CStr;
+use std::str;
 
 use get_error;
 
 pub mod ll {
     #![allow(non_camel_case_types)]
 
-    use libc::{c_int, uint8_t, uint16_t, uint32_t};
-    use libc::types::os::arch::c95::c_schar;
+    use std::ffi::c_char;
+
+    use libc::{c_int, uint16_t, uint32_t, uint8_t};
 
     pub type CDstatus = c_int;
 
@@ -25,7 +26,7 @@ pub mod ll {
         pub _type: uint8_t,
         pub unused: uint16_t,
         pub length: uint32_t,
-        pub offset: uint32_t
+        pub offset: uint32_t,
     }
 
     #[repr(C)]
@@ -47,7 +48,7 @@ pub mod ll {
 
     extern "C" {
         pub fn SDL_CDNumDrives() -> c_int;
-        pub fn SDL_CDName(drive: c_int) -> *const c_schar;
+        pub fn SDL_CDName(drive: c_int) -> *const c_char;
         pub fn SDL_CDOpen(drive: c_int) -> *mut SDL_CD;
         pub fn SDL_CDStatus(cdrom: *mut SDL_CD) -> CDstatus;
         pub fn SDL_CDClose(cdrom: *mut SDL_CD);
@@ -55,11 +56,13 @@ pub mod ll {
         pub fn SDL_CDEject(cdrom: *mut SDL_CD) -> c_int;
         pub fn SDL_CDResume(cdrom: *mut SDL_CD) -> c_int;
         pub fn SDL_CDPlay(cdrom: *mut SDL_CD, start: c_int, length: c_int) -> c_int;
-        pub fn SDL_CDPlayTracks(cdrom: *mut SDL_CD,
-                                start_track: c_int,
-                                start_frame: c_int,
-                                ntracks: c_int,
-                                nframes: c_int) -> c_int;
+        pub fn SDL_CDPlayTracks(
+            cdrom: *mut SDL_CD,
+            start_track: c_int,
+            start_frame: c_int,
+            ntracks: c_int,
+            nframes: c_int,
+        ) -> c_int;
         pub fn SDL_CDPause(cdrom: *mut SDL_CD) -> c_int;
     }
 }
@@ -75,14 +78,16 @@ pub fn get_drive_name(index: isize) -> Result<String, String> {
         if cstr.is_null() {
             Err(get_error())
         } else {
-            Ok(str::from_utf8(CStr::from_ptr(cstr).to_bytes()).unwrap().to_string())
+            Ok(str::from_utf8(CStr::from_ptr(cstr).to_bytes())
+                .unwrap()
+                .to_string())
         }
     }
 }
 
 #[derive(PartialEq)]
 pub struct CD {
-    pub raw: *mut ll::SDL_CD
+    pub raw: *mut ll::SDL_CD,
 }
 
 fn wrap_cd(raw: *mut ll::SDL_CD) -> CD {
@@ -95,7 +100,7 @@ pub enum Status {
     Stopped = ll::CD_STOPPED as isize,
     Playing = ll::CD_PLAYING as isize,
     Paused = ll::CD_PAUSED as isize,
-    Error = ll::CD_ERROR as isize
+    Error = ll::CD_ERROR as isize,
 }
 
 impl CD {
@@ -103,8 +108,11 @@ impl CD {
         unsafe {
             let raw = ll::SDL_CDOpen(index as c_int);
 
-            if raw.is_null() { Err(get_error()) }
-            else { Ok(wrap_cd(raw)) }
+            if raw.is_null() {
+                Err(get_error())
+            } else {
+                Ok(wrap_cd(raw))
+            }
         }
     }
 
@@ -117,7 +125,7 @@ impl CD {
                 2 => Status::Playing,
                 3 => Status::Paused,
                 -1 => Status::Error,
-                _ => Status::Error
+                _ => Status::Error,
             }
         }
     }
@@ -126,11 +134,21 @@ impl CD {
         unsafe { ll::SDL_CDPlay(self.raw, start as c_int, len as c_int) == 0 }
     }
 
-    pub fn play_tracks(&self, start_track: isize, start_frame: isize, ntracks: isize,
-                   nframes: isize) -> bool {
+    pub fn play_tracks(
+        &self,
+        start_track: isize,
+        start_frame: isize,
+        ntracks: isize,
+        nframes: isize,
+    ) -> bool {
         unsafe {
-            ll::SDL_CDPlayTracks(self.raw, start_track as c_int, start_frame as c_int,
-                                 ntracks as c_int, nframes as c_int) == 0
+            ll::SDL_CDPlayTracks(
+                self.raw,
+                start_track as c_int,
+                start_frame as c_int,
+                ntracks as c_int,
+                nframes as c_int,
+            ) == 0
         }
     }
 
@@ -149,6 +167,8 @@ impl CD {
 
 impl Drop for CD {
     fn drop(&mut self) {
-        unsafe { ll::SDL_CDClose(self.raw); }
+        unsafe {
+            ll::SDL_CDClose(self.raw);
+        }
     }
 }

@@ -1,6 +1,6 @@
 [package]
-name = "sdl"
-version = "0.3.6"
+name = "sdl1_2-rs"
+version = "0.3.7"
 authors = [
 	"Brian Anderson <banderson@mozilla.com>",
 	"Kang Seonghoon <public+rust@mearie.org>"
