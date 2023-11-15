@@ -1,6 +1,6 @@
 [package]
 name = "sdl_image"
-version = "0.3.6"
+version = "0.3.7"
 authors = [
 	"Brian Anderson <banderson@mozilla.com>",
 	"Kang Seonghoon <public+rust@mearie.org>"
