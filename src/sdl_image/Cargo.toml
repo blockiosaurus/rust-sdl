@@ -15,8 +15,6 @@ license = "MIT"
 name = "sdl_image"
 path = "lib.rs"
 
-[dependencies.sdl]
-path = "../.."
-
 [dependencies]
 libc = "0.1"
+sdl = "0.3.6"
